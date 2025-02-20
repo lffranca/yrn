@@ -1,0 +1,1 @@
+# Registros de decisões arquiteturais (ADR)
