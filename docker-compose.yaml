@@ -12,9 +12,7 @@ services:
     command: ["agent", "-dev", "-client=0.0.0.0"]
 
   agent:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ghcr.io/yrn-go/yrn:0.0.1
     command: ["/app/agent"]
     environment:
       environment:
@@ -29,9 +27,7 @@ services:
       - consul
 
   connector:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ghcr.io/yrn-go/yrn:0.0.1
     command: ["/app/connector"]
     environment:
       CONSUL_HTTP_ADDR: http://consul:8500
