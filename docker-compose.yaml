@@ -1,0 +1,44 @@
+networks:
+  yrn:
+    driver: bridge
+
+services:
+  consul:
+    image: hashicorp/consul
+    networks:
+      - yrn
+    ports:
+      - "8500:8500"
+    command: ["agent", "-dev", "-client=0.0.0.0"]
+
+  agent:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["/app/agent"]
+    environment:
+      environment:
+      CONSUL_HTTP_ADDR: http://consul:8500
+      CONNECTOR_SERVICE_NAME: connector
+      SERVICE_PORT: 8080
+    ports:
+      - "8080:8080"
+    networks:
+      - yrn
+    depends_on:
+      - consul
+
+  connector:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["/app/connector"]
+    environment:
+      CONSUL_HTTP_ADDR: http://consul:8500
+      SERVICE_NAME: connector
+      SERVICE_HOST: connector
+      SERVICE_PORT: 8080
+    networks:
+      - yrn
+    depends_on:
+      - consul
