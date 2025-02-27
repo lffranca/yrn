@@ -42,8 +42,7 @@ func NewApp(
 		log.Panicf("envs SERVICE_NAME, SERVICE_HOST, SERVICE_PORT and %s is required\n", api.HTTPAddrEnvName)
 	}
 
-	switch nil {
-	case schema:
+	if schema == nil {
 		log.Panicln("schema is required")
 	}
 
