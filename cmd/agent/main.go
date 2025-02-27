@@ -87,10 +87,15 @@ func handlerServices(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		schemas[index] = resp
+		resBody, _ := io.ReadAll(resp.Body)
+
+		var respMap map[string]any
+		_ = json.Unmarshal(resBody, &respMap)
+
+		schemas[index] = respMap
 	}
 
-	_ = json.NewEncoder(w).Encode(services)
+	_ = json.NewEncoder(w).Encode(schemas)
 }
 
 func main() {
