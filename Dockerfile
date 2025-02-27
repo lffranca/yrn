@@ -1,5 +1,7 @@
 FROM golang:1.24-alpine3.21 AS builder
 
+LABEL org.opencontainers.image.source=https://github.com/yrn-go/yrn
+
 #avoid root
 ENV USER=appuser
 ENV UID=1000
@@ -40,6 +42,8 @@ RUN go build -o agent ./cmd/agent/main.go
 RUN go build -o connector ./cmd/connector/main.go
 
 FROM scratch
+
+LABEL org.opencontainers.image.source=https://github.com/yrn-go/yrn
 
 #avoid rootless
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
