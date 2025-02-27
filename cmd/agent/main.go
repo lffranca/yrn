@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/yrn-go/yrn/pkg/yconnector"
 	"golang.org/x/exp/slog"
 	"io"
 	"log"
@@ -73,6 +74,20 @@ func handlerServices(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusServiceUnavailable)
 		return
+	}
+
+	schemas := map[string]any{}
+
+	for index, service := range services {
+		serviceUrl := fmt.Sprintf("http://%s:%d%s", service.Address, service.Port, yconnector.EndpointSchema)
+
+		resp, err := http.Get(serviceUrl)
+		if err != nil {
+			http.Error(w, "Erro ao chamar o serviço", http.StatusInternalServerError)
+			return
+		}
+
+		schemas[index] = resp
 	}
 
 	_ = json.NewEncoder(w).Encode(services)

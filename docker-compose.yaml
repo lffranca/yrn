@@ -12,7 +12,7 @@ services:
     command: ["agent", "-dev", "-client=0.0.0.0"]
 
   agent:
-    image: ghcr.io/yrn-go/yrn:0.0.1
+    image: ghcr.io/yrn-go/yrn:latest
     command: ["/app/agent"]
     environment:
       environment:
@@ -27,7 +27,7 @@ services:
       - consul
 
   connector:
-    image: ghcr.io/yrn-go/yrn:0.0.1
+    image: ghcr.io/yrn-go/yrn:latest
     command: ["/app/connector"]
     environment:
       CONSUL_HTTP_ADDR: http://consul:8500
