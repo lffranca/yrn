@@ -13,12 +13,15 @@ import (
 )
 
 const (
+	MapKeySchema = "schema"
+
 	EnvServiceName = "SERVICE_NAME"
 	EnvServiceHost = "SERVICE_HOST"
 	EnvServicePort = "SERVICE_PORT"
 
-	EndpointHealth = "/health"
-	EndpointSchema = "/schema"
+	EndpointHealth   = "/health"
+	EndpointSchema   = "/" + MapKeySchema
+	EndpointServices = "/services"
 )
 
 var (

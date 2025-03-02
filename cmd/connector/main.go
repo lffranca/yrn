@@ -22,26 +22,91 @@ func main() {
 }
 
 const schemaData = `{
-	"$id": "https://qri.io/schema/",
-	"$comment" : "sample comment",
-	"title": "Person",
+	"$id": "https://qri.io/schema/http-plugin",
+	"$comment": "Schema para um plugin de chamadas HTTP",
+	"title": "HTTP Plugin",
 	"type": "object",
 	"properties": {
-		"firstName": {
-			"type": "string"
+		"request": {
+			"type": "object",
+			"description": "Configuração da requisição HTTP",
+			"properties": {
+				"method": {
+					"type": "string",
+					"enum": ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"],
+					"description": "Método HTTP da requisição"
+				},
+				"url": {
+					"type": "string",
+					"format": "uri",
+					"description": "URL para a requisição"
+				},
+				"headers": {
+					"type": "object",
+					"additionalProperties": {
+						"type": "string"
+					},
+					"description": "Cabeçalhos da requisição"
+				},
+				"queryParams": {
+					"type": "object",
+					"additionalProperties": {
+						"type": "string"
+					},
+					"description": "Parâmetros de consulta da URL"
+				},
+				"body": {
+					"type": ["string", "object", "array", "null"],
+					"description": "Corpo da requisição (JSON, texto ou nulo)"
+				},
+				"timeout": {
+					"type": "integer",
+					"minimum": 0,
+					"description": "Tempo limite para a requisição em milissegundos"
+				}
+			},
+			"required": ["method", "url"]
 		},
-		"lastName": {
-			"type": "string"
+		"response": {
+			"type": "object",
+			"description": "Configuração da resposta esperada",
+			"properties": {
+				"statusCode": {
+					"type": "integer",
+					"minimum": 100,
+					"maximum": 599,
+					"description": "Código de status esperado"
+				},
+				"headers": {
+					"type": "object",
+					"additionalProperties": {
+						"type": "string"
+					},
+					"description": "Cabeçalhos da resposta"
+				},
+				"body": {
+					"type": ["string", "object", "array", "null"],
+					"description": "Corpo da resposta esperada"
+				}
+			}
 		},
-		"age": {
-			"description": "Age in years",
-			"type": "integer",
-			"minimum": 0
-		},
-		"friends": {
-			"type" : "array",
-			"items" : { "title" : "REFERENCE", "$ref" : "#" }
+		"retry": {
+			"type": "object",
+			"description": "Configurações de tentativas de reexecução",
+			"properties": {
+				"maxAttempts": {
+					"type": "integer",
+					"minimum": 0,
+					"description": "Número máximo de tentativas"
+				},
+				"delay": {
+					"type": "integer",
+					"minimum": 0,
+					"description": "Tempo de espera entre tentativas (ms)"
+				}
+			},
+			"required": ["maxAttempts", "delay"]
 		}
 	},
-	"required": ["firstName", "lastName"]
+	"required": ["request"]
 }`
