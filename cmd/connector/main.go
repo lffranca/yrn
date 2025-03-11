@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/json"
 	"github.com/qri-io/jsonschema"
-	"github.com/yrn-go/yrn/pkg/yconnector"
+	"github.com/yrn-go/yrn/pkg/ybase"
 	"golang.org/x/exp/slog"
 	"log"
 )
@@ -15,7 +15,7 @@ func main() {
 		log.Panicf("unmarshal schema: %v\n", err.Error())
 	}
 
-	appRun := yconnector.NewApp(&schema, map[string]string{})
+	appRun := ybase.NewApp(&schema, map[string]string{})
 	if err := appRun(); err != nil {
 		slog.Error("server error: ", slog.Any("error", err))
 	}

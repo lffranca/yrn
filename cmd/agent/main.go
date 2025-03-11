@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"github.com/yrn-go/yrn/pkg/yconnector"
+	"github.com/yrn-go/yrn/pkg/ybase"
 	"golang.org/x/exp/slog"
 	"io"
 	"log"
@@ -56,7 +56,7 @@ func handlerServiceFunc(c *gin.Context) {
 	}
 
 	for index, service := range services {
-		serviceUrl := fmt.Sprintf("http://%s:%d%s", service.Address, service.Port, yconnector.EndpointSchema)
+		serviceUrl := fmt.Sprintf("http://%s:%d%s", service.Address, service.Port, ybase.EndpointSchema)
 
 		resp, err := http.Get(serviceUrl)
 		if err != nil {
@@ -71,7 +71,7 @@ func handlerServiceFunc(c *gin.Context) {
 			services[index].Meta = make(map[string]string)
 		}
 
-		services[index].Meta[yconnector.MapKeySchema] = string(resBody)
+		services[index].Meta[ybase.MapKeySchema] = string(resBody)
 	}
 
 	c.JSON(http.StatusOK, services)
@@ -80,7 +80,7 @@ func handlerServiceFunc(c *gin.Context) {
 func main() {
 	engine := gin.Default()
 
-	engine.GET(yconnector.EndpointServices, handlerServiceFunc)
+	engine.GET(ybase.EndpointServices, handlerServiceFunc)
 
 	log.Fatal(engine.Run(":"+EnvServicePort), nil)
 }

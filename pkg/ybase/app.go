@@ -1,4 +1,4 @@
-package yconnector
+package ybase
 
 import (
 	"fmt"
