@@ -13,16 +13,16 @@ const (
 	ProcessingStatusFailed     ProcessingStatus = "FAILED"
 )
 
-type ConnectorInput[T any] struct {
-	Body T `json:"body"`
+type ConnectorInput struct {
+	Body any `json:"body"`
 }
 
-type ConnectorOutput[T any] struct {
+type ConnectorOutput struct {
 	ProcessingStatus ProcessingStatus `json:"processingStatus"`
-	Body             *T               `json:"body"`
+	Body             any              `json:"body"`
 }
 
-type Connector[Input any, Output any] interface {
+type Connector interface {
 	Schema(ctx context.Context) map[string]any
-	Do(ctx context.Context, input *ConnectorInput[Input]) (output *ConnectorOutput[Output], err error)
+	Do(ctx context.Context, input *ConnectorInput) (output *ConnectorOutput, err error)
 }
