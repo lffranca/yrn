@@ -19,7 +19,7 @@ const (
 )
 
 type ConnectorParent struct {
-	Connector         *Connector  `json:"connector"`
+	Connector         *Plugin     `json:"connector"`
 	TransferCondition map[int]int `json:"transfer_condition"`
 	Template          string      `json:"template,omitempty"`
 	PositionData      string      `json:"position_data"`

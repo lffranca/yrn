@@ -10,25 +10,22 @@ type (
 	}
 
 	Flow struct {
-		Id          string   `json:"id"`
-		Name        string   `json:"name"`
-		Description string   `json:"description"`
-		Tenant      string   `json:"tenant"`
-		Plugins     []Plugin `json:"plugins"`
-		Version     int      `json:"version"`
+		Id          string       `json:"id"`
+		Name        string       `json:"name"`
+		Description string       `json:"description"`
+		Tenant      string       `json:"tenant"`
+		Plugins     []FlowPlugin `json:"plugins"`
+		Version     int          `json:"version"`
 	}
 
-	Plugin struct {
-		Id                          string   `json:"id"`
-		Name                        string   `json:"name"`
-		Slug                        string   `json:"slug"`
-		Description                 string   `json:"description"`
-		Schema                      string   `json:"schema"`
-		DiagramData                 string   `json:"diagram_data"`
-		FlowId                      string   `json:"flow_id"`
-		Tenant                      string   `json:"tenant"`
-		NextSteps                   []string `json:"next_steps"`
-		ContinueEvenWithError       bool     `json:"continue_even_with_error"`
-		ShareResponseWithAllPlugins bool     `json:"share_response_with_all_plugins"`
+	FlowPlugin struct {
+		Id                          string `json:"id"`
+		Slug                        string `json:"slug"`
+		Name                        string `json:"name"`
+		Description                 string `json:"description"`
+		Version                     int    `json:"version"`
+		SchemaInput                 string `json:"schema_input"`
+		ContinueEvenWithError       bool   `json:"continue_even_with_error"`
+		ShareResponseWithAllPlugins bool   `json:"share_response_with_all_plugins"`
 	}
 )

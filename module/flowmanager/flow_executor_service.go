@@ -10,21 +10,24 @@ type (
 		Validate(ctx *yctx.Context, schema string, body []byte) (err error)
 	}
 	PluginExecutor interface {
-		Execute(ctx *yctx.Context, plugin *Plugin, data []byte, responseSharedForAll map[string][]byte) (response []byte, err error)
+		Do(ctx *yctx.Context, schemaInputs string, previousPluginResponse any, responseSharedForAll map[string]any) (output any, err error)
+	}
+	PluginManager interface {
+		GetBySlug(ctx *yctx.Context, slug string) (plugin PluginExecutor, err error)
 	}
 	FlowExecutor struct {
 		jsonSchemaValidator  JSONSchemaValidator
 		flowReaderRepository FlowReaderRepository
-		pluginExecutor       PluginExecutor
+		pluginManager        PluginManager
 	}
 )
 
-func (f *FlowExecutor) Do(ctx *yctx.Context, flowId string, data []byte) (err error) {
+func (f *FlowExecutor) Do(ctx *yctx.Context, flowId string, eventRequestData any) (err error) {
 
 	var (
 		flow                   *Flow
-		previousPluginResponse []byte
-		responseSharedForAll   = make(map[string][]byte)
+		previousPluginResponse any
+		responseSharedForAll   = make(map[string]any)
 	)
 
 	flow, err = f.flowReaderRepository.GetById(ctx, flowId)
@@ -32,43 +35,49 @@ func (f *FlowExecutor) Do(ctx *yctx.Context, flowId string, data []byte) (err er
 		return
 	}
 
-	for index, plugin := range flow.Plugins {
+	for index, pluginInfo := range flow.Plugins {
 		var (
+			pluginExecutor PluginExecutor
 			pluginData     = previousPluginResponse
-			pluginResponse []byte
+			pluginResponse any
 		)
 
 		if index == 0 {
-			pluginData = data
+			pluginData = eventRequestData
 		}
 
-		if err = f.jsonSchemaValidator.Validate(ctx, plugin.Schema, pluginData); err != nil {
+		pluginExecutor, err = f.pluginManager.GetBySlug(ctx, pluginInfo.Slug)
+		if err != nil {
 			slog.Error(
-				"flow plugin error validate",
-				slog.Any("plugin", plugin),
+				"flow plugin get by slug",
+				slog.Any("plugin_info", pluginInfo),
 				slog.Any("error", err),
 			)
 
-			if !plugin.ContinueEvenWithError {
+			if !pluginInfo.ContinueEvenWithError {
 				return
 			}
+
+			continue
 		}
 
-		pluginResponse, err = f.pluginExecutor.Execute(ctx, &plugin, pluginData, responseSharedForAll)
+		pluginResponse, err = pluginExecutor.Do(ctx, pluginInfo.SchemaInput, pluginData, responseSharedForAll)
 		if err != nil {
 			slog.Error(
 				"flow plugin error execute",
-				slog.Any("plugin", plugin),
+				slog.Any("plugin_info", pluginInfo),
 				slog.Any("error", err),
 			)
 
-			if !plugin.ContinueEvenWithError {
+			if !pluginInfo.ContinueEvenWithError {
 				return
 			}
+
+			continue
 		}
 
-		if plugin.ShareResponseWithAllPlugins {
-			responseSharedForAll[plugin.Slug] = pluginResponse
+		if pluginInfo.ShareResponseWithAllPlugins {
+			responseSharedForAll[pluginInfo.Slug] = pluginResponse
 		}
 
 		previousPluginResponse = pluginResponse
