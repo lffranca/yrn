@@ -6,9 +6,6 @@ import (
 )
 
 type (
-	JSONSchemaValidator interface {
-		Validate(ctx *yctx.Context, schema string, body []byte) (err error)
-	}
 	PluginExecutor interface {
 		Do(ctx *yctx.Context, schemaInputs string, previousPluginResponse any, responseSharedForAll map[string]any) (output any, err error)
 	}
@@ -16,18 +13,26 @@ type (
 		GetBySlug(ctx *yctx.Context, slug string) (plugin PluginExecutor, err error)
 	}
 	FlowExecutor struct {
-		jsonSchemaValidator  JSONSchemaValidator
 		flowReaderRepository FlowReaderRepository
 		pluginManager        PluginManager
 	}
 )
 
-func (f *FlowExecutor) Do(ctx *yctx.Context, flowId string, eventRequestData any) (err error) {
+func NewFlowExecutor(
+	flowReaderRepository FlowReaderRepository,
+	pluginManager PluginManager,
+) *FlowExecutor {
+	return &FlowExecutor{
+		flowReaderRepository,
+		pluginManager,
+	}
+}
+
+func (f *FlowExecutor) Do(ctx *yctx.Context, flowId string, eventRequestData any) (response any, err error) {
 
 	var (
-		flow                   *Flow
-		previousPluginResponse any
-		responseSharedForAll   = make(map[string]any)
+		flow                 *Flow
+		responseSharedForAll = make(map[string]any)
 	)
 
 	flow, err = f.flowReaderRepository.GetById(ctx, flowId)
@@ -38,7 +43,7 @@ func (f *FlowExecutor) Do(ctx *yctx.Context, flowId string, eventRequestData any
 	for index, pluginInfo := range flow.Plugins {
 		var (
 			pluginExecutor PluginExecutor
-			pluginData     = previousPluginResponse
+			pluginData     = response
 			pluginResponse any
 		)
 
@@ -77,10 +82,10 @@ func (f *FlowExecutor) Do(ctx *yctx.Context, flowId string, eventRequestData any
 		}
 
 		if pluginInfo.ShareResponseWithAllPlugins {
-			responseSharedForAll[pluginInfo.Slug] = pluginResponse
+			responseSharedForAll[pluginInfo.Id] = pluginResponse
 		}
 
-		previousPluginResponse = pluginResponse
+		response = pluginResponse
 	}
 
 	return

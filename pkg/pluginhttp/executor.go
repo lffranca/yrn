@@ -4,14 +4,11 @@ import (
 	"bytes"
 	_ "embed"
 	"encoding/json"
-	"fmt"
-	"github.com/xeipuuv/gojsonschema"
 	"github.com/yrn-go/yrn/module/flowmanager"
+	"github.com/yrn-go/yrn/pkg/plugincore"
 	"github.com/yrn-go/yrn/pkg/yctx"
 	"io"
-	"log/slog"
 	"net/http"
-	"text/template"
 )
 
 const (
@@ -34,36 +31,20 @@ func NewExecutor() *Executor {
 
 func (e *Executor) Do(ctx *yctx.Context, schemaInputs string, previousPluginResponse any, responseSharedForAll map[string]any) (output any, err error) {
 	var (
-		tmpl           *template.Template
-		templateResult = &bytes.Buffer{}
-		requestData    HTTPSchema
-		requestBody    []byte
-		resp           *http.Response
-		req            *http.Request
-		responseBody   []byte
+		requestData  *HTTPSchema
+		requestBody  []byte
+		resp         *http.Response
+		req          *http.Request
+		responseBody []byte
 	)
 
-	tmpl, err = template.
-		New(SlugHttp).
-		Parse(schemaInputs)
+	requestData, err = plugincore.ValidateAndGetRequestBody[HTTPSchema](
+		Schema,
+		schemaInputs,
+		previousPluginResponse,
+		responseSharedForAll,
+	)
 	if err != nil {
-		return
-	}
-
-	templateData := map[string]any{
-		"data":         previousPluginResponse,
-		"sharedForAll": responseSharedForAll,
-	}
-
-	if err = tmpl.Execute(templateResult, templateData); err != nil {
-		return
-	}
-
-	if err = e.validate(templateResult.Bytes()); err != nil {
-		return
-	}
-
-	if err = json.Unmarshal(templateResult.Bytes(), &requestData); err != nil {
 		return
 	}
 
@@ -102,32 +83,5 @@ func (e *Executor) Do(ctx *yctx.Context, schemaInputs string, previousPluginResp
 	}
 
 	err = json.Unmarshal(responseBody, &output)
-	return
-}
-
-func (e *Executor) validate(schemaInputs []byte) (err error) {
-	var (
-		schemaLoader       = gojsonschema.NewBytesLoader(Schema)
-		schemaInputsLoader = gojsonschema.NewBytesLoader(schemaInputs)
-		result             *gojsonschema.Result
-	)
-
-	result, err = gojsonschema.Validate(schemaLoader, schemaInputsLoader)
-	if err != nil {
-		return
-	}
-
-	if !result.Valid() {
-		var errs []any
-
-		for _, desc := range result.Errors() {
-			errs = append(errs, slog.Any(desc.Field(), desc.Description()))
-		}
-
-		slog.Error("error validate", errs...)
-
-		return fmt.Errorf("validation failed: %v", errs)
-	}
-
 	return
 }
