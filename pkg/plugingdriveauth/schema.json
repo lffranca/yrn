@@ -1,0 +1,20 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "client_id": {
+      "type": "string"
+    },
+    "client_secret": {
+      "type": "string"
+    },
+    "code": {
+      "type": "string",
+      "description": "Authorization code obtained from Google OAuth2"
+    },
+    "redirect_uri": {
+      "type": "string"
+    }
+  },
+  "required": ["client_id", "client_secret", "code", "redirect_uri"]
+}

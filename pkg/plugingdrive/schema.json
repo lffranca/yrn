@@ -1,0 +1,18 @@
+{
+  "type": "object",
+  "properties": {
+    "credentials": {
+      "type": "string",
+      "description": "Conteúdo do JSON da conta de serviço do Google"
+    },
+    "folderId": {
+      "type": "string",
+      "description": "ID da pasta no Google Drive"
+    },
+    "sharedDriveId": {
+      "type": "string",
+      "description": "ID do Shared Drive (se aplicável)"
+    }
+  },
+  "required": ["credentials", "folderId", "sharedDriveId"]
+}
