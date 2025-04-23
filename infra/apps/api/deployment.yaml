@@ -1,10 +1,10 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Rollout
 metadata:
-  name: my-app
-  namespace: yrn-api
+  name: yrn-admin-api
+  namespace: yrn-admin-api
   labels:
-    app: my-app
+    app: yrn-admin-api
 spec:
   replicas: 2
   strategy:
@@ -17,16 +17,16 @@ spec:
         - setWeight: 100
   selector:
     matchLabels:
-      app: my-app
+      app: yrn-admin-api
   template:
     metadata:
       labels:
-        app: my-app
+        app: yrn-admin-api
     spec:
       imagePullSecrets:
         - name: ghcr-creds
       containers:
-        - name: my-app
+        - name: yrn-admin-api
           image: ghcr.io/yrn-go/yrn:latest
           command: ["/app/api"]
           ports:
@@ -35,11 +35,11 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: my-app
-  namespace: yrn-api
+  name: yrn-admin-api
+  namespace: yrn-admin-api
 spec:
   selector:
-    app: my-app
+    app: yrn-admin-api
   ports:
     - port: 80
       targetPort: 8080
