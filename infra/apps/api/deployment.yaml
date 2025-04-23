@@ -19,5 +19,6 @@ spec:
       containers:
         - name: my-app
           image: ghcr.io/yrn-go/yrn:latest
+          command: ["/app/api"]
           ports:
             - containerPort: 8080
