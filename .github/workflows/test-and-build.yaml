@@ -62,3 +62,15 @@ jobs:
           IMAGE_NAME=ghcr.io/${{ github.repository }}
           docker push $IMAGE_NAME:${{ env.commit_hash }}
           docker push $IMAGE_NAME:latest
+
+      - name: Update Rollout Image Tag
+        run: |
+          sed -i "s|image: ghcr.io/yrn-go/yrn:.*|image: ghcr.io/yrn-go/yrn:${{ env.commit_hash }}|" infra/apps/api/deployment.yaml
+
+      - name: Commit and Push Updated Rollout
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add infra/apps/api/deployment.yaml
+          git commit -m "chore: update rollout image to ${{ env.commit_hash }}"
+          git push
