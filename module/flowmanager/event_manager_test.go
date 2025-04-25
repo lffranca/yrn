@@ -91,16 +91,7 @@ func (s *EventManagerTestSuite) TestExecute_ShouldReturnSuccess() {
 		On("Do", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Return(map[string]any{"success": true}, nil)
 
-	//// Executa com timeout menor que o original
-	//go func() {
-	//	time.Sleep(2 * time.Second)
-	//}()
-
 	finalResponse, err := s.eventManager.Execute(s.ctx, "test1", map[string]any{"input": "value"})
 
 	slog.Info("finalResponse", slog.Any("finalResponse", finalResponse), slog.Any("err", err))
-
-	//s.NoError(err)
-	//s.NotNil(finalResponse)
-	//s.Equal(map[string]any{"success": true}, finalResponse)
 }
