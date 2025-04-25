@@ -3,6 +3,11 @@ package test
 import (
 	"context"
 	"encoding/json"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 	"github.com/yrn-go/yrn/module/flowmanager"
@@ -10,10 +15,6 @@ import (
 	"github.com/yrn-go/yrn/pkg/pluginmapper"
 	"github.com/yrn-go/yrn/pkg/yctx"
 	"golang.org/x/exp/slog"
-	"io"
-	"net/http"
-	"net/http/httptest"
-	"testing"
 )
 
 func TestFlowExecutor(t *testing.T) {
@@ -22,11 +23,17 @@ func TestFlowExecutor(t *testing.T) {
 
 type FlowExecutorTestSuite struct {
 	suite.Suite
-	flowReaderRepository *flowmanager.FlowReaderRepositoryMock
+	flowReaderRepositoryMock *flowmanager.FlowReaderRepositoryMock
+	pluginManager            *pluginmapper.PluginManagerLocal
+	statusRepoMock           *flowmanager.PluginStatusRepositoryMock
+	flowExecutor             *flowmanager.FlowExecutor
 }
 
-func (suite *FlowExecutorTestSuite) SetupTest() {
-	suite.flowReaderRepository = new(flowmanager.FlowReaderRepositoryMock)
+func (s *FlowExecutorTestSuite) SetupTest() {
+	s.flowReaderRepositoryMock = new(flowmanager.FlowReaderRepositoryMock)
+	s.pluginManager = pluginmapper.NewPluginManagerLocal()
+	s.statusRepoMock = new(flowmanager.PluginStatusRepositoryMock)
+	s.flowExecutor = flowmanager.NewFlowExecutor(s.flowReaderRepositoryMock, s.pluginManager, s.statusRepoMock)
 }
 
 func (suite *FlowExecutorTestSuite) TearDownTest() {}
@@ -62,8 +69,9 @@ func (suite *FlowExecutorTestSuite) TestExecute_WithSuccess() {
 	var (
 		ctx          = yctx.NewContext(context.Background())
 		flowExecutor = flowmanager.NewFlowExecutor(
-			suite.flowReaderRepository,
-			pluginmapper.NewPluginManagerLocal(),
+			suite.flowReaderRepositoryMock,
+			suite.pluginManager,
+			suite.statusRepoMock,
 		)
 		flowId           = "flow-test-id"
 		eventRequestData = map[string]any{
@@ -76,7 +84,6 @@ func (suite *FlowExecutorTestSuite) TestExecute_WithSuccess() {
 				Body: map[string]interface{}{
 					"name":  "Test 01",
 					"email": "{{.data.user_email}}",
-					//"from":  "{{.sharedForAll.telegram.text_message}}",
 				},
 			},
 		}
@@ -87,7 +94,6 @@ func (suite *FlowExecutorTestSuite) TestExecute_WithSuccess() {
 				Body: map[string]interface{}{
 					"name":  "{{ .sharedForAll.test_01.request.name }}",
 					"email": "{{ with .data }}{{ .request.name }}{{ end }}",
-					//"from":  "{{.sharedForAll.telegram.text_message}}",
 				},
 			},
 		}
@@ -113,9 +119,16 @@ func (suite *FlowExecutorTestSuite) TestExecute_WithSuccess() {
 		}
 	)
 
-	suite.flowReaderRepository.
+	suite.flowReaderRepositoryMock.
 		On("GetById", mock.Anything, flowId).
 		Return(flowInfo)
+
+	// Configura as expectativas para o repositório de status
+	// Cada plugin terá duas chamadas de Save (início e fim da execução)
+	suite.statusRepoMock.
+		On("Save", mock.Anything, mock.Anything).
+		Return(nil).
+		Times(4) // 2 plugins * 2 chamadas cada
 
 	response, err := flowExecutor.Do(ctx, flowId, eventRequestData)
 	suite.NoError(err)

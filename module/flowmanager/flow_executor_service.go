@@ -14,16 +14,19 @@ type (
 	FlowExecutor struct {
 		flowReaderRepository FlowReaderRepository
 		pluginManager        PluginManager
+		statusRepo           PluginStatusRepository
 	}
 )
 
 func NewFlowExecutor(
 	flowReaderRepository FlowReaderRepository,
 	pluginManager PluginManager,
+	statusRepo PluginStatusRepository,
 ) *FlowExecutor {
 	return &FlowExecutor{
 		flowReaderRepository,
 		pluginManager,
+		statusRepo,
 	}
 }
 
@@ -31,7 +34,7 @@ func (f *FlowExecutor) Do(ctx *yctx.Context, flowId string, eventRequestData any
 
 	var (
 		flow         *Flow
-		eventManager = NewEventManager(f.pluginManager)
+		eventManager = NewEventManager(f.pluginManager, f.statusRepo)
 	)
 
 	flow, err = f.flowReaderRepository.GetById(ctx, flowId)

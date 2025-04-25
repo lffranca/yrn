@@ -1,0 +1,60 @@
+linters-settings:
+  govet:
+    check-shadowing: true
+  gocyclo:
+    min-complexity: 15
+  goconst:
+    min-len: 2
+    min-occurrences: 2
+  misspell:
+    locale: US
+  lll:
+    line-length: 140
+
+linters:
+  enable:
+    - bodyclose
+    - depguard
+    - errcheck
+    - goconst
+    - gocritic
+    - gocyclo
+    - gofmt
+    - goimports
+    - gosec
+    - gosimple
+    - govet
+    - ineffassign
+    - lll
+    - misspell
+    - nakedret
+    - staticcheck
+    - stylecheck
+    - typecheck
+    - unconvert
+    - unparam
+    - unused
+    - whitespace
+
+issues:
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - dupl
+        - gocyclo
+        - lll
+        - gosec
+    - path: mock
+      linters:
+        - typecheck
+        - unused
+        - gosec
+    - path: vendor
+      linters:
+        - all
+    - path: pkg/mod
+      linters:
+        - all
+    - linters:
+        - gosec
+      text: "G104"

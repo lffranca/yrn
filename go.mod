@@ -8,6 +8,7 @@ require (
 	github.com/gin-gonic/gin v1.10.0
 	github.com/hashicorp/consul/api v1.31.2
 	github.com/qri-io/jsonschema v0.2.1
+	github.com/redis/go-redis/v9 v9.7.3
 	github.com/stretchr/testify v1.10.0
 	github.com/xeipuuv/gojsonschema v1.2.0
 	go.mongodb.org/mongo-driver v1.17.3
@@ -21,8 +22,10 @@ require (
 	github.com/armon/go-metrics v0.4.1 // indirect
 	github.com/bytedance/sonic v1.12.9 // indirect
 	github.com/bytedance/sonic/loader v0.2.3 // indirect
+	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cloudwego/base64x v0.1.5 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
+	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/fatih/color v1.16.0 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.8 // indirect
