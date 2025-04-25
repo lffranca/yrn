@@ -52,26 +52,19 @@ func (e *EventManager) calculateNumberOfParentPlugins(firstPluginIdToExecute str
 
 func (e *EventManager) Execute(ctx *yctx.Context, firstPluginIdToExecute string, eventRequestData any) (finalResponse any, err error) {
 	var (
-		processResult       = make(chan EventManagerProcessResult)
-		done                = make(chan struct{})
-		pluginEventProducer = new(sync.Map)
+		processResult        = make(chan EventManagerProcessResult)
+		done                 = make(chan struct{})
+		pluginEventProducer  = new(sync.Map)
+		responseSharedForAll = new(sync.Map)
 	)
 
 	e.calculateNumberOfParentPlugins(firstPluginIdToExecute)
-
-	slog.Info("numberOfPluginsToRun", slog.Any("total", e.numberOfPluginsToRun))
 
 	for slug, pluginInfo := range e.plugins {
 		var pluginExecutor PluginExecutor
 
 		pluginExecutor, err = e.pluginManager.GetBySlug(ctx, pluginInfo.Slug)
 		if err != nil {
-			slog.Error(
-				"flow plugin get by slug",
-				slog.Any("plugin_info", pluginInfo),
-				slog.Any("error", err),
-			)
-
 			return nil, err
 		}
 
@@ -84,6 +77,7 @@ func (e *EventManager) Execute(ctx *yctx.Context, firstPluginIdToExecute string,
 				processResult,
 				done,
 				pluginEventProducer,
+				responseSharedForAll,
 			),
 		)
 	}
@@ -95,7 +89,6 @@ func (e *EventManager) Execute(ctx *yctx.Context, firstPluginIdToExecute string,
 	for i := 0; i < e.numberOfPluginsToRun; i++ {
 		select {
 		case result := <-processResult:
-			slog.Info("plugin response", slog.Any("result", result))
 			finalResponse = result.Output
 			err = result.Error
 		}
@@ -112,6 +105,7 @@ func (e *EventManager) handler(
 	processResult chan<- EventManagerProcessResult,
 	done chan struct{},
 	pluginEventProducer *sync.Map,
+	responseSharedForAll *sync.Map,
 ) chan<- any {
 	var (
 		eventProducer = make(chan any)
@@ -131,12 +125,17 @@ func (e *EventManager) handler(
 					err    error
 				)
 
-				output, err = pluginExecutor.Do(ctx, pluginInfo.SchemaInput, body, nil)
-				processResult <- EventManagerProcessResult{
+				output, err = pluginExecutor.Do(ctx, pluginInfo.SchemaInput, body, syncMapToMap(responseSharedForAll))
+
+				result := EventManagerProcessResult{
 					Id:     pluginInfo.Id,
 					Output: output,
 					Error:  err,
 				}
+
+				processResult <- result
+
+				responseSharedForAll.Store(pluginInfo.Id, output)
 
 				for _, slugNextToBeExecuted := range pluginInfo.NextToBeExecuted {
 					if ch, ok := pluginEventProducer.Load(slugNextToBeExecuted); ok {
@@ -151,4 +150,16 @@ func (e *EventManager) handler(
 	}()
 
 	return eventProducer
+}
+
+func syncMapToMap(m *sync.Map) map[string]any {
+	result := make(map[string]any)
+	m.Range(func(key, value any) bool {
+		strKey, ok := key.(string)
+		if ok {
+			result[strKey] = value
+		}
+		return true
+	})
+	return result
 }
