@@ -4,12 +4,14 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"errors"
-	"github.com/yrn-go/yrn/pkg/yctx"
-	"go.mongodb.org/mongo-driver/mongo"
-	mongoOption "go.mongodb.org/mongo-driver/mongo/options"
 	"net/url"
 	"os"
 	"strings"
+	"time"
+
+	"github.com/yrn-go/yrn/pkg/yctx"
+	"go.mongodb.org/mongo-driver/mongo"
+	mongoOption "go.mongodb.org/mongo-driver/mongo/options"
 )
 
 const (
@@ -31,7 +33,6 @@ func GetCollection(ctx *yctx.Context, collectionName string) (collection *mongo.
 }
 
 func getDatabase(ctx *yctx.Context) (database *mongo.Database, err error) {
-
 	databaseName := os.Getenv(EnvMongoDatabase)
 	if databaseName == "" {
 		return nil, errors.New("missing environment variable: " + EnvMongoDatabase)
@@ -58,13 +59,24 @@ func getClient(ctx *yctx.Context) (mongoClient *mongo.Client, err error) {
 	}
 
 	mongoOptions := mongoOption.Client().
-		ApplyURI(*mongoURI)
+		ApplyURI(*mongoURI).
+		SetConnectTimeout(10 * time.Second).
+		SetSocketTimeout(30 * time.Second).
+		SetMaxPoolSize(100).
+		SetMinPoolSize(10).
+		SetMaxConnIdleTime(5 * time.Minute)
 
 	if tlsConfigData != nil {
 		mongoOptions.SetTLSConfig(tlsConfigData)
 	}
 
 	mongoClient, err = mongo.Connect(ctx.Context(), mongoOptions)
+	if err != nil {
+		return
+	}
+
+	// Verifica a conexão
+	err = mongoClient.Ping(ctx.Context(), nil)
 	if err != nil {
 		return
 	}
