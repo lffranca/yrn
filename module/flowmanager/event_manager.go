@@ -40,12 +40,12 @@ func (e *EventManager) Register(pluginExecutor FlowPlugin) (err error) {
 	return nil
 }
 
-func (e *EventManager) calculateNumberOfParentPlugins(firstPluginIdToExecute string) {
+func (e *EventManager) calculateNumberOfPluginsToRun(firstPluginIdToExecute string) {
 	e.numberOfPluginsToRun++
 
 	if pluginInfo, ok := e.plugins[firstPluginIdToExecute]; ok {
 		for _, slugNextToBeExecuted := range pluginInfo.NextToBeExecuted {
-			e.calculateNumberOfParentPlugins(slugNextToBeExecuted)
+			e.calculateNumberOfPluginsToRun(slugNextToBeExecuted)
 		}
 	}
 }
@@ -58,7 +58,7 @@ func (e *EventManager) Execute(ctx *yctx.Context, firstPluginIdToExecute string,
 		responseSharedForAll = new(sync.Map)
 	)
 
-	e.calculateNumberOfParentPlugins(firstPluginIdToExecute)
+	e.calculateNumberOfPluginsToRun(firstPluginIdToExecute)
 
 	for slug, pluginInfo := range e.plugins {
 		var pluginExecutor PluginExecutor
