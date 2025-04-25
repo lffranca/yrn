@@ -94,31 +94,20 @@ func (suite *FlowExecutorTestSuite) TestExecute_WithSuccess() {
 		test01SchemaBody, _ = json.Marshal(test01SchemaBodyObj)
 		test02SchemaBody, _ = json.Marshal(test02SchemaBodyObj)
 		flowInfo            = &flowmanager.Flow{
-			Id: flowId,
-			//Name        string       `json:"name"`
-			//Description string       `json:"description"`
-			//Tenant      string       `json:"tenant"`
-			//Version     int          `json:"version"`
+			Id:               flowId,
+			FirstPluginToRun: "test_01",
 			Plugins: []flowmanager.FlowPlugin{
 				{
 					Id:                          "test_01",
 					Slug:                        pluginhttp.SlugHttp,
 					SchemaInput:                 string(test01SchemaBody),
 					ShareResponseWithAllPlugins: true,
-					//Name                        string `json:"name"`
-					//Description                 string `json:"description"`
-					//Version                     int    `json:"version"`
-					//ContinueEvenWithError:       true,
+					NextToBeExecuted:            []string{"test_02"},
 				},
 				{
 					Id:          "test_02",
 					Slug:        pluginhttp.SlugHttp,
 					SchemaInput: string(test02SchemaBody),
-					//Name                        string `json:"name"`
-					//Description                 string `json:"description"`
-					//Version                     int    `json:"version"`
-					//ContinueEvenWithError       bool   `json:"continue_even_with_error"`
-					//ShareResponseWithAllPlugins bool   `json:"share_response_with_all_plugins"`
 				},
 			},
 		}

@@ -2,7 +2,6 @@ package flowmanager
 
 import (
 	"github.com/yrn-go/yrn/pkg/yctx"
-	"log/slog"
 )
 
 type (
@@ -31,8 +30,9 @@ func NewFlowExecutor(
 func (f *FlowExecutor) Do(ctx *yctx.Context, flowId string, eventRequestData any) (response any, err error) {
 
 	var (
-		flow                 *Flow
-		responseSharedForAll = make(map[string]any)
+		flow *Flow
+		//responseSharedForAll = make(map[string]any)
+		eventManager = NewEventManager(f.pluginManager)
 	)
 
 	flow, err = f.flowReaderRepository.GetById(ctx, flowId)
@@ -40,53 +40,110 @@ func (f *FlowExecutor) Do(ctx *yctx.Context, flowId string, eventRequestData any
 		return
 	}
 
-	for index, pluginInfo := range flow.Plugins {
-		var (
-			pluginExecutor PluginExecutor
-			pluginData     = response
-			pluginResponse any
-		)
-
-		if index == 0 {
-			pluginData = eventRequestData
+	for _, pluginInfo := range flow.Plugins {
+		if err = eventManager.Register(pluginInfo); err != nil {
+			return
 		}
-
-		pluginExecutor, err = f.pluginManager.GetBySlug(ctx, pluginInfo.Slug)
-		if err != nil {
-			slog.Error(
-				"flow plugin get by slug",
-				slog.Any("plugin_info", pluginInfo),
-				slog.Any("error", err),
-			)
-
-			if !pluginInfo.ContinueEvenWithError {
-				return
-			}
-
-			continue
-		}
-
-		pluginResponse, err = pluginExecutor.Do(ctx, pluginInfo.SchemaInput, pluginData, responseSharedForAll)
-		if err != nil {
-			slog.Error(
-				"flow plugin error execute",
-				slog.Any("plugin_info", pluginInfo),
-				slog.Any("error", err),
-			)
-
-			if !pluginInfo.ContinueEvenWithError {
-				return
-			}
-
-			continue
-		}
-
-		if pluginInfo.ShareResponseWithAllPlugins {
-			responseSharedForAll[pluginInfo.Id] = pluginResponse
-		}
-
-		response = pluginResponse
 	}
 
-	return
+	return eventManager.Execute(ctx, flow.FirstPluginToRun, eventRequestData)
+
+	//firstPluginToRun := flow.Plugins[flow.FirstPluginToRun]
+	//
+	//pluginsToExecute := []FlowPlugin{firstPluginToRun}
+	//
+	//for {
+	//	for _, pluginInfo := range pluginsToExecute {
+	//		var (
+	//			pluginExecutor PluginExecutor
+	//			pluginData     = response
+	//			pluginResponse any
+	//		)
+	//
+	//		pluginExecutor, err = f.pluginManager.GetBySlug(ctx, pluginInfo.Slug)
+	//		if err != nil {
+	//			slog.Error(
+	//				"flow plugin get by slug",
+	//				slog.Any("plugin_info", pluginInfo),
+	//				slog.Any("error", err),
+	//			)
+	//
+	//			if !pluginInfo.ContinueEvenWithError {
+	//				return
+	//			}
+	//
+	//			continue
+	//		}
+	//
+	//		pluginResponse, err = pluginExecutor.Do(ctx, pluginInfo.SchemaInput, pluginData, responseSharedForAll)
+	//		if err != nil {
+	//			slog.Error(
+	//				"flow plugin error execute",
+	//				slog.Any("plugin_info", pluginInfo),
+	//				slog.Any("error", err),
+	//			)
+	//
+	//			if !pluginInfo.ContinueEvenWithError {
+	//				return
+	//			}
+	//
+	//			continue
+	//		}
+	//	}
+	//
+	//}
+	//
+	//for index, pluginInfo := range flow.Plugins {
+	//	var (
+	//		pluginExecutor PluginExecutor
+	//		pluginData     = response
+	//		pluginResponse any
+	//	)
+	//
+	//	if index == 0 {
+	//		pluginData = eventRequestData
+	//	}
+	//
+	//	pluginExecutor, err = f.pluginManager.GetBySlug(ctx, pluginInfo.Slug)
+	//	if err != nil {
+	//		slog.Error(
+	//			"flow plugin get by slug",
+	//			slog.Any("plugin_info", pluginInfo),
+	//			slog.Any("error", err),
+	//		)
+	//
+	//		if !pluginInfo.ContinueEvenWithError {
+	//			return
+	//		}
+	//
+	//		continue
+	//	}
+	//
+	//	pluginResponse, err = pluginExecutor.Do(ctx, pluginInfo.SchemaInput, pluginData, responseSharedForAll)
+	//	if err != nil {
+	//		slog.Error(
+	//			"flow plugin error execute",
+	//			slog.Any("plugin_info", pluginInfo),
+	//			slog.Any("error", err),
+	//		)
+	//
+	//		if !pluginInfo.ContinueEvenWithError {
+	//			return
+	//		}
+	//
+	//		continue
+	//	}
+	//
+	//	if pluginInfo.ShareResponseWithAllPlugins {
+	//		responseSharedForAll[pluginInfo.Id] = pluginResponse
+	//	}
+	//
+	//	response = pluginResponse
+	//}
+
+	//return
+}
+
+func (f *FlowExecutor) execute(ctx *yctx.Context, plugin *FlowPlugin) {
+
 }
