@@ -27,7 +27,7 @@ spec:
         - name: ghcr-creds
       containers:
         - name: yrn-admin-api
-          image: ghcr.io/yrn-go/yrn:46146
+          image: ghcr.io/yrn-go/yrn:1c63b
           command: ["/app/api"]
           ports:
             - containerPort: 8080
