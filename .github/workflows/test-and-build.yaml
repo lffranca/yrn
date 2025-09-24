@@ -107,20 +107,89 @@ jobs:
         run: |
           sed -i "s|image: ghcr.io/lffranca/yrn:.*|image: ghcr.io/lffranca/yrn:${{ env.version }}|" infra/apps/api/deployment.yaml
 
-      - name: Create Auto-Tag
+      - name: Create Git Tag
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
-
-          # Create and push the new tag (algorithm above ensures it's unique)
-          echo "Creating new tag: ${{ env.version }}"
+          echo "Creating git tag: ${{ env.version }}"
           git tag ${{ env.version }}
           git push origin ${{ env.version }}
 
-      - name: Commit and Push Updated Rollout
+      - name: Update Kubernetes Deployment
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
           git add infra/apps/api/deployment.yaml
           git commit -m "chore: update rollout image to ${{ env.version }}"
           git push
+
+      - name: Build Release Binaries
+        run: |
+          mkdir -p dist
+          # Build binaries for multiple platforms
+          GOOS=linux GOARCH=amd64 go build -ldflags "-X main.version=${{ env.version }}" -o dist/yrn-agent-linux-amd64 ./cmd/agent
+          GOOS=linux GOARCH=amd64 go build -ldflags "-X main.version=${{ env.version }}" -o dist/yrn-connector-linux-amd64 ./cmd/connector
+          GOOS=linux GOARCH=amd64 go build -ldflags "-X main.version=${{ env.version }}" -o dist/yrn-api-linux-amd64 ./cmd/api
+
+          GOOS=darwin GOARCH=amd64 go build -ldflags "-X main.version=${{ env.version }}" -o dist/yrn-agent-darwin-amd64 ./cmd/agent
+          GOOS=darwin GOARCH=amd64 go build -ldflags "-X main.version=${{ env.version }}" -o dist/yrn-connector-darwin-amd64 ./cmd/connector
+          GOOS=darwin GOARCH=amd64 go build -ldflags "-X main.version=${{ env.version }}" -o dist/yrn-api-darwin-amd64 ./cmd/api
+
+          GOOS=windows GOARCH=amd64 go build -ldflags "-X main.version=${{ env.version }}" -o dist/yrn-agent-windows-amd64.exe ./cmd/agent
+          GOOS=windows GOARCH=amd64 go build -ldflags "-X main.version=${{ env.version }}" -o dist/yrn-connector-windows-amd64.exe ./cmd/connector
+          GOOS=windows GOARCH=amd64 go build -ldflags "-X main.version=${{ env.version }}" -o dist/yrn-api-windows-amd64.exe ./cmd/api
+
+      - name: Create Release Archives
+        run: |
+          cd dist
+          tar -czf yrn-${{ env.version }}-linux-amd64.tar.gz yrn-*-linux-amd64
+          tar -czf yrn-${{ env.version }}-darwin-amd64.tar.gz yrn-*-darwin-amd64
+          zip yrn-${{ env.version }}-windows-amd64.zip yrn-*-windows-amd64.exe
+
+      - name: Generate Changelog
+        run: |
+          LAST_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          if [ -n "$LAST_TAG" ]; then
+            COMMITS=$(git log --pretty=format:"- %s (%h)" $LAST_TAG..HEAD | grep -v "chore: update rollout image")
+          else
+            COMMITS=$(git log --pretty=format:"- %s (%h)" HEAD | grep -v "chore: update rollout image")
+          fi
+
+          cat > CHANGELOG.md << EOF
+          ## What's Changed
+          $COMMITS
+
+          ## 🚀 Installation
+          ### Docker
+          \`\`\`bash
+          docker pull ghcr.io/${{ github.repository }}:${{ env.version }}
+          \`\`\`
+
+          ### Binary Download
+          Download the appropriate binary for your platform from the release assets.
+
+          **Docker Image**: \`ghcr.io/${{ github.repository }}:${{ env.version }}\`
+          EOF
+
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        id: create_release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ env.version }}
+          release_name: YRN ${{ env.version }}
+          body_path: CHANGELOG.md
+          draft: false
+          prerelease: ${{ contains(env.version, '-') }}
+
+      - name: Upload Release Assets
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Upload Linux
+          gh release upload ${{ env.version }} ./dist/yrn-${{ env.version }}-linux-amd64.tar.gz
+          # Upload macOS
+          gh release upload ${{ env.version }} ./dist/yrn-${{ env.version }}-darwin-amd64.tar.gz
+          # Upload Windows
+          gh release upload ${{ env.version }} ./dist/yrn-${{ env.version }}-windows-amd64.zip
