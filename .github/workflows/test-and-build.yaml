@@ -45,9 +45,39 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Get Short Commit Hash
+      - name: Generate Version
         id: vars
-        run: echo "commit_hash=$(git rev-parse --short=5 HEAD)" >> $GITHUB_ENV
+        run: |
+          # Get current date for version format
+          DATE=$(date +%Y.%m.%d)
+
+          # Get latest tag or default to v0.0.0
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+
+          # Extract version numbers
+          VERSION_REGEX="v([0-9]+)\.([0-9]+)\.([0-9]+)"
+          if [[ $LATEST_TAG =~ $VERSION_REGEX ]]; then
+            MAJOR=${BASH_REMATCH[1]}
+            MINOR=${BASH_REMATCH[2]}
+            PATCH=${BASH_REMATCH[3]}
+          else
+            MAJOR=0
+            MINOR=0
+            PATCH=0
+          fi
+
+          # Auto-increment patch version for CI builds
+          PATCH=$((PATCH + 1))
+          NEW_VERSION="v${MAJOR}.${MINOR}.${PATCH}"
+
+          # Also get commit hash for fallback
+          COMMIT_HASH=$(git rev-parse --short=5 HEAD)
+
+          echo "version=$NEW_VERSION" >> $GITHUB_ENV
+          echo "version_number=${MAJOR}.${MINOR}.${PATCH}" >> $GITHUB_ENV
+          echo "commit_hash=$COMMIT_HASH" >> $GITHUB_ENV
+
+          echo "Generated version: $NEW_VERSION (commit: $COMMIT_HASH)"
 
       - name: Log in to GitHub Container Registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u $GITHUB_ACTOR --password-stdin
@@ -55,22 +85,29 @@ jobs:
       - name: Build Docker Image
         run: |
           IMAGE_NAME=ghcr.io/${{ github.repository }}
-          docker build -t $IMAGE_NAME:${{ env.commit_hash }} -t $IMAGE_NAME:latest .
+          docker build -t $IMAGE_NAME:${{ env.version }} -t $IMAGE_NAME:latest .
 
       - name: Push Docker Image
         run: |
           IMAGE_NAME=ghcr.io/${{ github.repository }}
-          docker push $IMAGE_NAME:${{ env.commit_hash }}
+          docker push $IMAGE_NAME:${{ env.version }}
           docker push $IMAGE_NAME:latest
 
       - name: Update Rollout Image Tag
         run: |
-          sed -i "s|image: ghcr.io/lffranca/yrn:.*|image: ghcr.io/lffranca/yrn:${{ env.commit_hash }}|" infra/apps/api/deployment.yaml
+          sed -i "s|image: ghcr.io/lffranca/yrn:.*|image: ghcr.io/lffranca/yrn:${{ env.version }}|" infra/apps/api/deployment.yaml
+
+      - name: Create Auto-Tag
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git tag ${{ env.version }}
+          git push origin ${{ env.version }}
 
       - name: Commit and Push Updated Rollout
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
           git add infra/apps/api/deployment.yaml
-          git commit -m "chore: update rollout image to ${{ env.commit_hash }}"
+          git commit -m "chore: update rollout image to ${{ env.version }}"
           git push
