@@ -16,6 +16,7 @@ services:
       - N8N_PROTOCOL=http
       - WEBHOOK_URL=${N8N_WEBHOOK_URL:-http://0.0.0.0:5678/}
       - GENERIC_TIMEZONE=America/Sao_Paulo
+      - N8N_SECURE_COOKIE=false
       - DB_TYPE=postgresdb
       - DB_POSTGRESDB_HOST=n8n_db
       - DB_POSTGRESDB_PORT=5432
