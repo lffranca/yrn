@@ -150,9 +150,14 @@ jobs:
         run: |
           LAST_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
           if [ -n "$LAST_TAG" ]; then
-            COMMITS=$(git log --pretty=format:"- %s (%h)" $LAST_TAG..HEAD | grep -v "chore: update rollout image")
+            COMMITS=$(git log --pretty=format:"- %s (%h)" $LAST_TAG..HEAD | grep -v "chore: update rollout image" || true)
           else
-            COMMITS=$(git log --pretty=format:"- %s (%h)" HEAD | grep -v "chore: update rollout image")
+            COMMITS=$(git log --pretty=format:"- %s (%h)" HEAD | grep -v "chore: update rollout image" || true)
+          fi
+
+          # If no commits after filtering, provide a default message
+          if [ -z "$COMMITS" ]; then
+            COMMITS="- Initial release"
           fi
 
           cat > CHANGELOG.md << EOF
