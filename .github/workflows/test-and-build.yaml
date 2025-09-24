@@ -65,7 +65,7 @@ jobs:
 
       - name: Update Rollout Image Tag
         run: |
-          sed -i "s|image: ghcr.io/yrn-go/yrn:.*|image: ghcr.io/yrn-go/yrn:${{ env.commit_hash }}|" infra/apps/api/deployment.yaml
+          sed -i "s|image: ghcr.io/lffranca/yrn:.*|image: ghcr.io/lffranca/yrn:${{ env.commit_hash }}|" infra/apps/api/deployment.yaml
 
       - name: Commit and Push Updated Rollout
         run: |
