@@ -3,7 +3,7 @@ name: Release
 on:
   push:
     tags:
-      - 'v*.*.*'  # Triggers on version tags like v1.0.0, v2.1.3
+      - 'v*.*.*'  # Triggers on ALL version tags (manual OR automatic from CI)
   workflow_dispatch:
     inputs:
       version:
@@ -40,6 +40,18 @@ jobs:
           fi
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "version_number=${VERSION#v}" >> $GITHUB_OUTPUT
+
+      - name: Check if Docker Image Exists
+        id: docker_check
+        run: |
+          # For automatic CI tags, verify Docker image exists
+          if docker manifest inspect ghcr.io/${{ github.repository }}:${{ steps.version.outputs.version }} >/dev/null 2>&1; then
+            echo "docker_exists=true" >> $GITHUB_OUTPUT
+            echo "✅ Docker image found: ${{ steps.version.outputs.version }}"
+          else
+            echo "docker_exists=false" >> $GITHUB_OUTPUT
+            echo "⚠️ Docker image not found, will build now"
+          fi
 
       - name: Build Binaries
         run: |
@@ -78,13 +90,13 @@ jobs:
           LAST_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
 
           if [ -n "$LAST_TAG" ]; then
-            COMMITS=$(git log --pretty=format:"- %s (%h)" $LAST_TAG..HEAD)
+            COMMITS=$(git log --pretty=format:"- %s (%h)" $LAST_TAG..HEAD | grep -v "chore: update rollout image")
           else
-            COMMITS=$(git log --pretty=format:"- %s (%h)" HEAD)
+            COMMITS=$(git log --pretty=format:"- %s (%h)" HEAD | grep -v "chore: update rollout image")
           fi
 
           # Create changelog
-          cat > CHANGELOG.md << 'EOF'
+          cat > CHANGELOG.md << EOF
           ## What's Changed
 
           $COMMITS
@@ -92,15 +104,15 @@ jobs:
           ## 🚀 Installation
 
           ### Docker
-          ```bash
+          \`\`\`bash
           docker pull ghcr.io/${{ github.repository }}:${{ steps.version.outputs.version }}
-          ```
+          \`\`\`
 
           ### Binary Download
           Download the appropriate binary for your platform from the release assets below.
 
           ### Quick Start
-          ```bash
+          \`\`\`bash
           # Extract the archive
           tar -xzf yrn-${{ steps.version.outputs.version }}-linux-amd64.tar.gz
 
@@ -108,19 +120,23 @@ jobs:
           ./yrn-agent-linux-amd64 &
           ./yrn-connector-linux-amd64 &
           ./yrn-api-linux-amd64 &
-          ```
+          \`\`\`
+
+          **Docker Image**: \`ghcr.io/${{ github.repository }}:${{ steps.version.outputs.version }}\`
 
           **Full Changelog**: https://github.com/${{ github.repository }}/compare/$LAST_TAG...${{ steps.version.outputs.version }}
           EOF
 
       - name: Log in to GitHub Container Registry
+        if: steps.docker_check.outputs.docker_exists == 'false'
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u $GITHUB_ACTOR --password-stdin
 
       - name: Build and Push Docker Images
+        if: steps.docker_check.outputs.docker_exists == 'false'
         run: |
           IMAGE_NAME=ghcr.io/${{ github.repository }}
 
-          # Build image with version tag
+          # Build image with version tag (only if not exists)
           docker build -t $IMAGE_NAME:${{ steps.version.outputs.version }} .
           docker build -t $IMAGE_NAME:latest .
 

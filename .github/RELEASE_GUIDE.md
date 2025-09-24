@@ -18,13 +18,13 @@ git push origin v1.0.0
 ```
 
 ### 3. Automação
-O workflow irá automaticamente:
+O workflow **unificado** irá automaticamente:
+- ✅ Verificar se imagem Docker já existe (do CI)
+- ✅ Buildar Docker apenas se necessário
 - ✅ Buildar binários para Linux, macOS e Windows
 - ✅ Criar arquivos compactados (.tar.gz, .zip)
 - ✅ Gerar changelog baseado nos commits
-- ✅ Buildar e pushar imagem Docker com a tag da versão
 - ✅ Criar release no GitHub com assets
-- ✅ Atualizar deployment Kubernetes (opcional)
 
 ## 📋 Versionamento Semântico
 
